@@ -132,19 +132,19 @@ exports.run = function(api, event) {
 };
 
 exports.load = function() {
-	if (!this.config.bound) {
-		this.config.bound = 5;
+	if (!exports.config.bound) {
+		exports.config.bound = 5;
 	}
-	if (!this.config.alteredCount) {
-		this.config.alteredCount = 3;
+	if (!exports.config.alteredCount) {
+		exports.config.alteredCount = 3;
 	}
-	if (!this.config.alteredTime) {
-		this.config.alteredTime = 120000; // 2 mins
+	if (!exports.config.alteredTime) {
+		exports.config.alteredTime = 120000; // 2 mins
 	}
-	if (!this.config.karmaTimeLimit) {
-		this.config.karmaTimeLimit = 86400000; // 24hrs
+	if (!exports.config.karmaTimeLimit) {
+		exports.config.karmaTimeLimit = 86400000; // 24hrs
 	}
-	if (!this.config.karmaPerDay) {
-		this.config.karmaPerDay = 10;
+	if (!exports.config.karmaPerDay) {
+		exports.config.karmaPerDay = 10;
 	}
 };
