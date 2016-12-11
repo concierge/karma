@@ -1,150 +1,151 @@
-exports.match = function(event, commandPrefix) {
-	return event.body.endsWith('++') || event.body.endsWith('--') || event.body === commandPrefix + 'karma';
+const responses = [
+    'I eat blank karma for breakfast.',
+    'A karma with every meal is good apparently.',
+    'Thank-you for appreciating my efforts.',
+    'Karma comes only to those you give it too.',
+    'You are tosser.'
+];
+
+const initialise = (obj, property, defaultVal) => {
+    if (!obj.hasOwnProperty(property)) {
+        obj[property] = defaultVal;
+    }
 };
 
-exports.parseKarmaChange = function(message) {
-	var karma = 0, name = "";
-	for (var i = message.length - 2; i !== -1; i--) {
-		switch(message[i]){
-			case '+': karma++; break;
-			case '-': karma--; break;
-			default: name = message.substr(0, i+1); i = 0; break;
-		}
-	}
-	return {name: name.trim().toProperCase(), karma: karma};
+const parseKarmaChange = (message) => {
+    const extracted = /(\+|-)\1*$/.exec(message);
+    return {
+        karma: extracted[1] === '+' ? extracted[0].length : extracted[1].length,
+        name: message.substr(0, extracted.index).trim().toProperCase()
+    };
 };
 
-exports.checkPerson = function(karma, person) {
-	var ps = person.split(' '),
+const checkPerson = (karma, person) => {
+	const ps = person.split(' '),
 		ks = karma.split(' '),
-		overlap = ps.filter(function(n) {
-		return ks.indexOf(n) != -1
-	});
+		overlap = ps.filter(n => ks.indexOf(n) != -1);
 	return overlap.length != 0;
 };
 
-exports.modifyKarma = function(karmaChange, person, thread) {
-	if (!this.config[thread]) {
-		this.config[thread] = {};
-	}
-
-	if (karmaChange.name.trim() === '') {
-		var responses = ['I eat blank karma for breakfast.', 'A karma with every meal is good apparently.',
-		'Thank-you for appreciating my efforts.', 'Karma comes only to those you give it too.', 'You are tosser.'];
-        var index = Math.floor(Math.random() * responses.length);
-		return responses[index] + ' Try again.';
-	}
-
-	person = person.toProperCase();
-	if (!this.config[thread][person]) {
-		this.config[thread][person] = {karma:0,lastAlteredBy:'',lastAlteredCount:0,lastAlteredTime:null,quotta:0,timeSinceQuottaStart:new Date()};
-	}
-	if (this.config[thread][person].timeSinceQuottaStart == null) {
-		this.config[thread][person].timeSinceQuottaStart = new Date();
-	}
-
-	if (new Date() - this.config[thread][person].timeSinceQuottaStart > this.config.karmaTimeLimit && this.config[thread][person].karmaTimeLimit != null) {
-		this.config[thread][person].timeSinceQuottaStart = new Date();
-		this.config[thread][person].quotta = 0;
-	}
-
-	if(this.config[thread][person].quotta >= this.config.karmaPerDay) {
-		//todo say how long until they can karma again
-		return person + ' has used there karma quota for today, please try again tomorrow';
-	}
-
-	if (exports.checkPerson(karmaChange.name, person)) {
-		if (karmaChange.karma > 0) {
-			karmaChange.karma *= -1;
-		}
-		this.config[thread][person].karma += karmaChange.karma;
-		this.config[thread][person].quotta += Math.abs(karmaChange.karma);
-		return person + ' modified their own karma. As punishment they now have ' + this.config[thread][person].karma + ' karma.';
-	}
-
-	if (karmaChange.karma >= this.config.bound || karmaChange.karma <= -this.config.bound) {
-		if (karmaChange.karma > 0) {
-			karmaChange.karma *= -1;
-		}
-		this.config[thread][person].karma += karmaChange.karma;
-		this.config[thread][person].quotta += Math.abs(karmaChange.karma);
-		return person + ' modified karma too much. As punishment they now have ' + this.config[thread][person].karma + ' karma.';
-	}
-
-	if (!this.config[thread][karmaChange.name]) {
-		this.config[thread][karmaChange.name] = {karma:0,lastAlteredBy:'',lastAlteredCount:0,lastAlteredTime:null,quotta:0,timeSinceQuottaStart:null};
-	}
-
-	if (new Date() - this.config[thread][karmaChange.name].lastAlteredTime > this.config.alteredTime) {
-		this.config[thread][karmaChange.name].lastAlteredCount = 0;
-	}
-
-	if (person === this.config[thread][karmaChange.name].lastAlteredBy && this.config[thread][karmaChange.name].lastAlteredCount === this.config.alteredCount) {
-		if (karmaChange.karma > 0) {
-			karmaChange.karma *= -1;
-		}
-		this.config[thread][person].karma += karmaChange.karma;
-		this.config[thread][person].quotta += Math.abs(karmaChange.karma);
-		return person + ' modified the karma of ' + karmaChange.name + ' too often. As punishment they now have ' + this.config[thread][person].karma + ' karma.';
-	}
-	else {
-		this.config[thread][karmaChange.name].lastAlteredBy = person;
-		this.config[thread][karmaChange.name].lastAlteredCount =
-			person === this.config[thread][karmaChange.name].lastAlteredBy ? this.config[thread][karmaChange.name].lastAlteredCount + 1: 1;
-		this.config[thread][karmaChange.name].lastAlteredTime = new Date();
-	}
-
-	if (this.config[thread][person].quotta + Math.abs(karmaChange.karma) >= this.config.karmaPerDay) {
-		var karma = this.config.karmaPerDay - this.config[thread][person].quotta;
-		this.config[thread][person].quotta += karma;
-		if (karmaChange.karma < 0) {
-			karma *= -1;
-		}
-		this.config[thread][karmaChange.name].karma += karma;
-		return karmaChange.name + ' now has ' + this.config[thread][karmaChange.name].karma + ' karma\n' +
-				person + ' has reached their karma limit for today.';
-	}
-
-
-	this.config[thread][person].quotta += Math.abs(karmaChange.karma);
-	this.config[thread][karmaChange.name].karma += karmaChange.karma;
-	return karmaChange.name + ' now has ' + this.config[thread][karmaChange.name].karma + ' karma.';
+const punish = (thread, person, karmaChange, reason) => {
+    karmaChange.karma = Math.abs(karmaChange.karma);
+    exports.config[thread][person].karma -= karmaChange.karma;
+    exports.config[thread][person].quota += karmaChange.karma;
+    return `${person} modified ${reason}. As punishment they now have ${exports.config[thread][person].karma} karma.`;
 };
 
-exports.printKarma = function(api, event) {
-	var karmas = this.config[event.thread_id];
-	var message = '';
-	for (var k in karmas) {
-		message += k + ' \t→ ' + karmas[k].karma + '\n';
+const modifyKarma = (karmaChange, person, thread) => {
+    initialise(exports.config, thread, {});
+
+	if (karmaChange.name.trim() === '') { // invalid karma change
+        const index = Math.floor(Math.random() * responses.length);
+		return `${responses[index]} Try again.`;
+	}
+
+    const currDate = new Date();
+    initialise(exports.config[thread], person, {
+        karma: 0,
+        quota: 0,
+        lastAlteredBy: '',
+        lastAlteredCount: 0,
+        lastAlteredTime: currDate,
+        quotaStartTime: currDate
+    });
+
+    // migration path
+    initialise(exports.config[thread][person], 'quotaStartTime', currDate);
+
+    // reset karma timeout
+	if (currDate - exports.config[thread][person].quotaStartTime > exports.config.karmaTimeLimit) {
+		exports.config[thread][person].quotaStartTime = currDate;
+		exports.config[thread][person].quota = 0;
+	}
+
+    // prevent changing karma until timelimit is over
+	if (exports.config[thread][person].quota >= exports.config.karmaPerTimeLimit && !exports.config.allowAnyKarmaPerTimeLimit) {
+        const endWait = new Date(exports.config[thread][person].quotaStartTime.getTime() + exports.config.karmaTimeLimit),
+            endDt = `${endWait.toLocaleString()} (${Intl.DateTimeFormat().resolvedOptions().timeZone})`;
+		return `${person} has used their karma quota for today, please try again after ${endDt}.`;
+	}
+
+    // prevent changing own karma
+    if (checkPerson(karmaChange.name, person) && !exports.config.allowSelfKarmaChange) {
+        return punish(thread, person, karmaChange, 'their own karma');;
+    }
+
+    // prevent changing item karma too much
+	if ((karmaChange.karma >= exports.config.karmaPerItem || karmaChange.karma <= -exports.config.karmaPerItem) && !exports.config.allowAnyKarmaPerItem) {
+        return punish(thread, person, karmaChange, 'karma too much');
+	}
+
+    initialise(exports.config[thread], karmaChange.name, {
+        karma: 0,
+        lastAlteredBy: '',
+        lastAlteredCount: 0,
+        lastAlteredTime: null,
+        quota: 0,
+        quotaStartTime: null
+    });
+
+    // reset change timeout
+	if (currDate - exports.config[thread][karmaChange.name].lastAlteredTime > exports.config.changeTimeLimit) {
+		exports.config[thread][karmaChange.name].lastAlteredCount = 0;
+	}
+
+    // ensure one person doesn't change an items karma too often
+	if (person === exports.config[thread][karmaChange.name].lastAlteredBy
+        && exports.config[thread][karmaChange.name].lastAlteredCount > exports.config.changePerTimeLimit && !exports.config.allowAnyChangePerTimeLimit) {
+        return punish(thread, person, karmaChange, `karma of ${karmaChange.name} too often`);
+	}
+
+	exports.config[thread][karmaChange.name].lastAlteredBy = person;
+	exports.config[thread][karmaChange.name].lastAlteredCount =
+		person === exports.config[thread][karmaChange.name].lastAlteredBy
+        ? exports.config[thread][karmaChange.name].lastAlteredCount + 1
+        : 1;
+	exports.config[thread][karmaChange.name].lastAlteredTime = currDate;
+
+	exports.config[thread][person].quota += Math.abs(karmaChange.karma);
+	exports.config[thread][karmaChange.name].karma += karmaChange.karma;
+	let response = `${karmaChange.name} now has ${exports.config[thread][karmaChange.name].karma} karma.`;
+    if (exports.config[thread][person].quota + Math.abs(karmaChange.karma) >= exports.config.karmaPerTimeLimit) {
+        response += `\n${person} has reached their karma limit for today.`;
+    }
+    return response;
+};
+
+const printKarma = (api, event) => {
+	const karmas = exports.config[event.thread_id];
+	let message = '';
+	for (let k in karmas) {
+		message += `${k} \t→ ${karmas[k].karma}\n`;
 	}
 	api.sendMessage((message === '' ? 'Somebody has failed to meet their meanness quota for the day. No karmas to show.' : message), event.thread_id);
 };
 
-exports.run = function(api, event) {
+exports.run = (api, event) => {
 	if (event.body === api.commandPrefix + 'karma') {
-		exports.printKarma(api, event);
+		printKarma(api, event);
 		return;
 	}
 
-	var karmaChange = exports.parseKarmaChange(event.body);
-	var result = exports.modifyKarma(karmaChange, event.sender_name.trim(), event.thread_id);
+	const karmaChange = parseKarmaChange(event.body),
+        result = modifyKarma(karmaChange, event.sender_name.trim().toProperCase(), event.thread_id);
 	api.sendMessage(result, event.thread_id);
 };
 
-exports.load = function() {
-	if (!exports.config.bound) {
-		exports.config.bound = 5;
-	}
-	if (!exports.config.alteredCount) {
-		exports.config.alteredCount = 3;
-	}
-	if (!exports.config.alteredTime) {
-		exports.config.alteredTime = 120000; // 2 mins
-	}
-	if (!exports.config.karmaTimeLimit) {
-		exports.config.karmaTimeLimit = 86400000; // 24hrs
-	}
-	if (!exports.config.karmaPerDay) {
-		exports.config.karmaPerDay = 10;
-	}
+exports.match = (event, commandPrefix) => {
+	return event.body.endsWith('++') || event.body.endsWith('--') || event.arguments[0] === commandPrefix + 'karma';
+};
+
+exports.load = () => {
+    initialise(exports.config, 'allowSelfKarmaChange', false);
+    initialise(exports.config, 'karmaPerTimeLimit', 10);
+    initialise(exports.config, 'karmaTimeLimit', 86400000); // 24hrs
+    initialise(exports.config, 'allowAnyKarmaPerTimeLimit', false);
+    initialise(exports.config, 'karmaPerItem', 5);
+    initialise(exports.config, 'allowAnyKarmaPerItem', false);
+    initialise(exports.config, 'changePerTimeLimit', 3);
+    initialise(exports.config, 'changeTimeLimit', 120000); // 2 mins
+    initialise(exports.config, 'allowAnyChangePerTimeLimit', false);
 };
