@@ -65,7 +65,8 @@ const modifyKarma = (karmaChange, person, thread) => {
     // prevent changing karma until timelimit is over
 	if (exports.config[thread][person].quota >= exports.config.karmaPerTimeLimit && !exports.config.allowAnyKarmaPerTimeLimit) {
         const endWait = new Date(exports.config[thread][person].quotaStartTime.getTime() + exports.config.karmaTimeLimit),
-            endDt = `${endWait.toLocaleString()} (${Intl.DateTimeFormat().resolvedOptions().timeZone})`;
+            tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Unknown TZ/Outdated Node.js';
+            endDt = `${endWait.toLocaleString()} (${tz})`;
 		return `${person} has used their karma quota for today, please try again after ${endDt}.`;
 	}
 
