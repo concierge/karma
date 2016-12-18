@@ -13,9 +13,10 @@ const initialise = (obj, property, defaultVal) => {
 };
 
 const parseKarmaChange = (message) => {
-    const extracted = /(\+|-)\1*$/.exec(message);
+    const extracted = /(\+|-)\1*$/.exec(message),
+        k = extracted[0].length - 1;
     return {
-        karma: extracted[1] === '+' ? extracted[0].length : -extracted[0].length,
+        karma: extracted[1] === '+' ? k : -k,
         name: message.substr(0, extracted.index).trim().toProperCase()
     };
 };
