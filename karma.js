@@ -15,7 +15,7 @@ const initialise = (obj, property, defaultVal) => {
 const parseKarmaChange = (message) => {
     const extracted = /(\+|-)\1*$/.exec(message);
     return {
-        karma: extracted[1] === '+' ? extracted[0].length : extracted[1].length,
+        karma: extracted[1] === '+' ? extracted[0].length : -extracted[0].length,
         name: message.substr(0, extracted.index).trim().toProperCase()
     };
 };
@@ -108,7 +108,7 @@ const modifyKarma = (karmaChange, person, thread) => {
 	exports.config[thread][person].quota += Math.abs(karmaChange.karma);
 	exports.config[thread][karmaChange.name].karma += karmaChange.karma;
 	let response = `${karmaChange.name} now has ${exports.config[thread][karmaChange.name].karma} karma.`;
-    if (exports.config[thread][person].quota + Math.abs(karmaChange.karma) >= exports.config.karmaPerTimeLimit) {
+    if (exports.config[thread][person].quota + Math.abs(karmaChange.karma) >= exports.config.karmaPerTimeLimit && !exports.config.allowAnyKarmaPerTimeLimit) {
         response += `\n${person} has reached their karma limit for today.`;
     }
     return response;
