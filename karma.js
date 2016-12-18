@@ -65,14 +65,14 @@ const modifyKarma = (karmaChange, person, thread) => {
     // prevent changing karma until timelimit is over
 	if (exports.config[thread][person].quota >= exports.config.karmaPerTimeLimit && !exports.config.allowAnyKarmaPerTimeLimit) {
         const endWait = new Date(exports.config[thread][person].quotaStartTime.getTime() + exports.config.karmaTimeLimit),
-            tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Unknown TZ/Outdated Node.js';
+            tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Unknown TZ/Outdated Node.js',
             endDt = `${endWait.toLocaleString()} (${tz})`;
 		return `${person} has used their karma quota for today, please try again after ${endDt}.`;
 	}
 
     // prevent changing own karma
     if (checkPerson(karmaChange.name, person) && !exports.config.allowSelfKarmaChange) {
-        return punish(thread, person, karmaChange, 'their own karma');;
+        return punish(thread, person, karmaChange, 'their own karma');
     }
 
     // prevent changing item karma too much
