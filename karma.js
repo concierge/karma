@@ -149,4 +149,17 @@ exports.load = () => {
     initialise(exports.config, 'changePerTimeLimit', 3);
     initialise(exports.config, 'changeTimeLimit', 120000); // 2 mins
     initialise(exports.config, 'allowAnyChangePerTimeLimit', false);
+
+    // convert back to date objects
+    for (let thread in exports.config) {
+        for (let karmaItem in exports.config[thread]) {
+            const item = exports.config[thread][karmaItem];
+            if (item.lastAlteredTime && typeof(item.lastAlteredTime) === 'string') {
+                item.lastAlteredTime = new Date(item.lastAlteredTime);
+            }
+            if (item.quotaStartTime && typeof(item.quotaStartTime) === 'string') {
+                item.quotaStartTime = new Date(item.quotaStartTime);
+            }
+        }
+    }
 };
